@@ -1,48 +1,104 @@
-import { useEffect } from 'react'
-import { isToday, isPast } from 'date-fns'
+import { useEffect, useRef } from 'react'
+import { showNotificationViaSW } from '../registerSW'
 
-const NOTIF_KEY = 'study-planner-notif-date'
+const DAILY_KEY = (taskId) => `study-notif-daily-${taskId}`
+const HOUR_KEY  = (taskId) => `study-notif-1h-${taskId}`
+const CHECK_INTERVAL_MS = 60 * 1000 // every minute
 
-export function useNotifications(tasks, enabled) {
-  useEffect(() => {
-    if (!enabled || !tasks.length) return
+// ── Permission ────────────────────────────────────────────────────────────────
+async function requestPermission() {
+  if (!('Notification' in window)) return false
+  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'denied') return false
+  const result = await Notification.requestPermission()
+  return result === 'granted'
+}
 
-    const today = new Date().toDateString()
-    const lastShown = localStorage.getItem(NOTIF_KEY)
-    if (lastShown === today) return // already shown today
+// ── Send notification ─────────────────────────────────────────────────────────
+// Prefers SW-based showNotification (works on mobile / background).
+// Falls back to new Notification() for desktop browsers without SW.
+async function sendNotification(title, body, tag) {
+  // Try service worker path first (required for mobile PWA)
+  const sentViaSW = await showNotificationViaSW(title, body, tag)
+  if (sentViaSW) return
 
-    const requestAndNotify = async () => {
-      if (!('Notification' in window)) return
+  // Fallback: direct Notification API (desktop)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body,
+      icon: '/icons/icon-192.png',
+      tag,
+      renotify: false,
+    })
+  }
+}
 
-      let permission = Notification.permission
-      if (permission === 'default') {
-        permission = await Notification.requestPermission()
-      }
-      if (permission !== 'granted') return
+// ── Core check logic ──────────────────────────────────────────────────────────
+async function checkAndNotify(tasks) {
+  const now      = new Date()
+  const todayStr = now.toDateString()
 
-      const pending = tasks.filter((t) => !t.completed)
-      const overdue = pending.filter(
-        (t) => isPast(new Date(t.deadline)) && !isToday(new Date(t.deadline))
+  for (const task of tasks) {
+    if (task.completed || !task.deadline) continue
+
+    const deadline        = new Date(task.deadline)
+    const msUntilDeadline = deadline - now
+
+    // ── Daily reminder ────────────────────────────────────────────
+    const dailyKey     = DAILY_KEY(task.id)
+    const lastDailyDate = localStorage.getItem(dailyKey)
+
+    if (lastDailyDate !== todayStr && deadline >= new Date(todayStr)) {
+      await sendNotification(
+        '📚 Study Reminder',
+        `Don't forget: "${task.title}" is due on ${deadline.toLocaleDateString(undefined, {
+          weekday: 'short', month: 'short', day: 'numeric',
+        })}`,
+        `daily-${task.id}`
       )
-      const dueToday = pending.filter((t) => isToday(new Date(t.deadline)))
-
-      if (overdue.length === 0 && dueToday.length === 0) return
-
-      const parts = []
-      if (dueToday.length) parts.push(`${dueToday.length} task${dueToday.length > 1 ? 's' : ''} due today`)
-      if (overdue.length) parts.push(`${overdue.length} overdue task${overdue.length > 1 ? 's' : ''}`)
-
-      new Notification('Study Reminder 📚', {
-        body: parts.join(' · '),
-        icon: '/favicon.ico',
-        tag: 'study-reminder',
-      })
-
-      localStorage.setItem(NOTIF_KEY, today)
+      localStorage.setItem(dailyKey, todayStr)
     }
 
-    // slight delay so the page settles first
-    const timer = setTimeout(requestAndNotify, 2000)
-    return () => clearTimeout(timer)
-  }, [enabled, tasks])
+    // ── 1-hour-before reminder ────────────────────────────────────
+    const hourKey          = HOUR_KEY(task.id)
+    const alreadyNotified1h = localStorage.getItem(hourKey)
+
+    if (!alreadyNotified1h && msUntilDeadline > 0 && msUntilDeadline <= 60 * 60 * 1000) {
+      const minutesLeft = Math.round(msUntilDeadline / 60000)
+      await sendNotification(
+        '⏰ Due Very Soon!',
+        `"${task.title}" is due in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}!`,
+        `1h-${task.id}`
+      )
+      localStorage.setItem(hourKey, 'true')
+    }
+  }
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
+export function useNotifications(tasks, enabled) {
+  const tasksRef = useRef(tasks)
+  useEffect(() => { tasksRef.current = tasks }, [tasks])
+
+  useEffect(() => {
+    if (!enabled) return
+
+    let cancelled = false
+
+    const run = async () => {
+      if (cancelled) return
+      const granted = await requestPermission()
+      if (!granted || cancelled) return
+      await checkAndNotify(tasksRef.current)
+    }
+
+    const initTimer = setTimeout(run, 2000)
+    const interval  = setInterval(run, CHECK_INTERVAL_MS)
+
+    return () => {
+      cancelled = true
+      clearTimeout(initTimer)
+      clearInterval(interval)
+    }
+  }, [enabled])
 }

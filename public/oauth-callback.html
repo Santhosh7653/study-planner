@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>Connecting...</title></head>
+<body>
+<script>
+  // Extract the auth code from the URL and send it to the opener window
+  const params = new URLSearchParams(window.location.search)
+  const code = params.get('code')
+  const error = params.get('error')
+
+  if (code && window.opener) {
+    window.opener.postMessage({ type: 'GOOGLE_OAUTH_CODE', code }, window.location.origin)
+  } else if (error && window.opener) {
+    window.opener.postMessage({ type: 'GOOGLE_OAUTH_ERROR', error }, window.location.origin)
+  }
+
+  window.close()
+</script>
+<p style="font-family:sans-serif;text-align:center;margin-top:40px;color:#6b7280;">
+  Connecting to Google Calendar...
+</p>
+</body>
+</html>
