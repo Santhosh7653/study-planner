@@ -16,15 +16,8 @@ import CalendarConnect from './components/CalendarConnect'
 export default function App() {
   const { currentUser, authLoading, login, signup, logout } = useAuth()
 
-  // ✅ FIX: use UID
-  const {
-    tasks,
-    tasksLoading,
-    addTask,
-    updateTask,
-    deleteTask,
-    toggleComplete
-  } = useTasks(currentUser?.uid)
+  // ✅ FIX 1: support both uid and old id
+  const { tasks, tasksLoading, addTask, updateTask, deleteTask, toggleComplete } = useTasks(currentUser?.uid || currentUser?.id)
 
   const { dark, toggle: toggleDark } = useDarkMode()
   const { toasts, toast, remove } = useToast()
@@ -35,10 +28,9 @@ export default function App() {
 
   useNotifications(tasks, !!currentUser)
 
-  // Loading
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <div className="w-8 h-8 border-4 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
           <span className="text-sm">Loading...</span>
@@ -47,7 +39,6 @@ export default function App() {
     )
   }
 
-  // Auth
   if (!currentUser) {
     return authView === 'login' ? (
       <LoginPage onLogin={login} onGoSignup={() => setAuthView('signup')} />
@@ -56,23 +47,15 @@ export default function App() {
     )
   }
 
-  // Handlers
   const handleSubmit = async (form) => {
-    try {
-      if (editTask) {
-        await updateTask(editTask.id, form)
-        toast('Task updated', 'info')
-      } else {
-        await addTask(form)
-        toast('Task added 🎉', 'success')
-      }
-    } catch (err) {
-      console.error(err)
-      toast('Error occurred', 'error')
+    if (editTask) {
+      await updateTask(editTask.id, form)
+      toast('Task updated', 'info')
+    } else {
+      await addTask(form)
+      toast('Task added 🎉', 'success')
     }
-
     setEditTask(null)
-    setModalOpen(false)
   }
 
   const handleEdit = (task) => {
@@ -98,7 +81,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
-      
       <ReminderPopup tasks={tasks} />
       <ToastContainer toasts={toasts} onRemove={remove} />
 
@@ -109,66 +91,67 @@ export default function App() {
         editTask={editTask}
       />
 
-      {/* Navbar */}
-      <header className="bg-white dark:bg-gray-900 border-b sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white">📚</div>
-            <span className="font-bold hidden sm:block">Study Planner</span>
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-base">📚</div>
+            <span className="text-base font-bold text-gray-900 dark:text-white hidden sm:block">Study Planner</span>
           </div>
 
           <div className="flex items-center gap-2">
-
-            {/* Dark mode */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={toggleDark}
-              className="p-2 rounded bg-gray-200 dark:bg-gray-700"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="Toggle dark mode"
             >
               {dark ? '☀️' : '🌙'}
             </motion.button>
 
-            {/* Add task */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={handleAddTask}
-              className="hidden sm:block bg-indigo-600 text-white px-3 py-1 rounded"
+              className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-md shadow-indigo-200 dark:shadow-none transition-colors"
             >
-              + Task
-            </button>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              New Task
+            </motion.button>
 
-            {/* User */}
-            <div className="flex items-center gap-2 ml-2">
-              <div className="w-8 h-8 bg-indigo-200 rounded flex items-center justify-center text-sm font-bold">
-                {currentUser.displayName?.[0] || currentUser.email?.[0]}
+            <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-gray-700 ml-1">
+              <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold uppercase">
+                {currentUser.username[0]}
               </div>
-
-              <span className="hidden md:block text-sm">
-                {currentUser.displayName || currentUser.email}
+              <span className="text-sm text-gray-700 dark:text-gray-300 font-medium hidden md:block">
+                {currentUser.username}
               </span>
-
-              <button
+              <motion.button
+                whileTap={{ scale: 0.95 }}
                 onClick={logout}
-                className="text-xs text-red-500"
+                className="text-xs text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 px-2.5 py-1.5 rounded-lg transition-colors"
               >
                 Logout
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="max-w-7xl mx-auto p-4">
+      <main className="max-w-7xl mx-auto px-4 py-6">
         {tasksLoading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center py-24">
             <div className="w-8 h-8 border-4 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
           </div>
         ) : (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            
-            {/* ✅ FIX HERE TOO */}
-            <CalendarConnect userId={currentUser.uid} />
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col gap-4"
+          >
+            {/* ✅ FIX 2: same fix here */}
+            <CalendarConnect userId={currentUser.uid || currentUser.id} />
 
             <Dashboard
               tasks={tasks}
