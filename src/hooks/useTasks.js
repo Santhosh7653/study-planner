@@ -17,61 +17,107 @@ export function useTasks(userId) {
   const [tasksLoading, setTasksLoading] = useState(false)
 
   useEffect(() => {
-    if (!userId) { setTasks([]); return }
+    if (!userId) {
+      console.warn("❌ No userId provided to useTasks")
+      setTasks([])
+      return
+    }
+
+    console.log("✅ Fetching tasks for UID:", userId)
 
     setTasksLoading(true)
+
     const q = query(
       collection(db, 'users', userId, 'tasks'),
       orderBy('createdAt', 'desc')
     )
 
-    // Real-time listener — updates UI instantly across all devices
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
-      setTasks(fetched)
-      setTasksLoading(false)
-    }, () => {
-      setTasksLoading(false)
-    })
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetched = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }))
+        setTasks(fetched)
+        setTasksLoading(false)
+      },
+      (error) => {
+        console.error("🔥 Firestore Error:", error)
+        setTasksLoading(false)
+      }
+    )
 
     return unsubscribe
   }, [userId])
 
   const addTask = async (task) => {
-    if (!userId) return
-    await addDoc(collection(db, 'users', userId, 'tasks'), {
-      ...task,
-      completed: false,
-      createdAt: serverTimestamp(),
-    })
+    if (!userId) {
+      console.error("❌ Cannot add task: userId missing")
+      return
+    }
+
+    try {
+      await addDoc(collection(db, 'users', userId, 'tasks'), {
+        ...task,
+        completed: false,
+        createdAt: serverTimestamp(),
+      })
+    } catch (err) {
+      console.error("🔥 Add Task Error:", err)
+    }
   }
 
   const updateTask = async (id, updates) => {
     if (!userId) return
-    // Clear 1-hour notification flag when deadline changes
-    const existing = tasks.find((t) => t.id === id)
-    if (updates.deadline && existing?.deadline !== updates.deadline) {
-      localStorage.removeItem(`study-notif-1h-${id}`)
+
+    try {
+      const existing = tasks.find((t) => t.id === id)
+
+      if (updates.deadline && existing?.deadline !== updates.deadline) {
+        localStorage.removeItem(`study-notif-1h-${id}`)
+      }
+
+      await updateDoc(doc(db, 'users', userId, 'tasks', id), updates)
+    } catch (err) {
+      console.error("🔥 Update Task Error:", err)
     }
-    await updateDoc(doc(db, 'users', userId, 'tasks', id), updates)
   }
 
   const deleteTask = async (id) => {
     if (!userId) return
-    // Clean up notification flags for deleted task
-    localStorage.removeItem(`study-notif-1h-${id}`)
-    localStorage.removeItem(`study-notif-daily-${id}`)
-    await deleteDoc(doc(db, 'users', userId, 'tasks', id))
+
+    try {
+      localStorage.removeItem(`study-notif-1h-${id}`)
+      localStorage.removeItem(`study-notif-daily-${id}`)
+
+      await deleteDoc(doc(db, 'users', userId, 'tasks', id))
+    } catch (err) {
+      console.error("🔥 Delete Task Error:", err)
+    }
   }
 
   const toggleComplete = async (id) => {
     if (!userId) return
-    const task = tasks.find((t) => t.id === id)
-    if (!task) return
-    await updateDoc(doc(db, 'users', userId, 'tasks', id), {
-      completed: !task.completed,
-    })
+
+    try {
+      const task = tasks.find((t) => t.id === id)
+      if (!task) return
+
+      await updateDoc(doc(db, 'users', userId, 'tasks', id), {
+        completed: !task.completed,
+      })
+    } catch (err) {
+      console.error("🔥 Toggle Error:", err)
+    }
   }
 
-  return { tasks, tasksLoading, addTask, updateTask, deleteTask, toggleComplete }
+  return {
+    tasks,
+    tasksLoading,
+    addTask,
+    updateTask,
+    deleteTask,
+    toggleComplete,
+  }
 }
