@@ -29,10 +29,13 @@ export function useGoogleCalendar(userId) {
     setConnecting(true)
     setError('')
 
+    // redirect_uri must be the exact URL registered in Google Cloud Console
+    const redirectUri = `${window.location.origin}/oauth-callback.html`
+
     // Open Google OAuth consent screen in a popup
     const params = new URLSearchParams({
       client_id: CLIENT_ID,
-      redirect_uri: 'postmessage',
+      redirect_uri: redirectUri,
       response_type: 'code',
       scope: [
         'https://www.googleapis.com/auth/calendar.events',

@@ -92,8 +92,8 @@ export default function TaskCard({ task, onEdit, onDelete, onToggle }) {
           )}
         </div>
 
-        {/* Actions — visible on hover */}
-        <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Actions — always visible on mobile, hover-only on desktop */}
+        <div className="flex gap-1 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => onEdit(task)}
