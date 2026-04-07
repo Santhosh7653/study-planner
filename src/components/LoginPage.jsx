@@ -35,35 +35,22 @@ export default function LoginPage({ onLogin, onGoSignup }) {
     setLoading(false)
   }
 
-  // 🔥 GOOGLE LOGIN HANDLER (FIXED)
+  // 🔥 CLEAN GOOGLE LOGIN
   const handleGoogleLogin = async (credentialResponse) => {
     try {
       setError('')
 
-      // Convert Google credential to Firebase credential
       const credential = GoogleAuthProvider.credential(
         credentialResponse.credential
       )
 
-      // Sign in with Firebase
       const result = await signInWithCredential(auth, credential)
 
       console.log('Firebase Google login success:', result.user)
 
-      // Optional: send token to backend
-      await fetch(`${import.meta.env.VITE_FUNCTIONS_URL}/save-google-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          credential: credentialResponse.credential,
-          uid: result.user.uid,
-        }),
-      })
-
-      // Update app state
-      if (onLogin) {
-        onLogin({ user: result.user })
-      }
+      // ❌ REMOVED:
+      // fetch(...) ❌
+      // onLogin(...) ❌
 
     } catch (err) {
       console.error('Google login error:', err)
@@ -161,7 +148,7 @@ export default function LoginPage({ onLogin, onGoSignup }) {
             </motion.button>
           </form>
 
-          {/* 🔥 GOOGLE LOGIN FIXED */}
+          {/* ✅ GOOGLE LOGIN */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
               Or sign in with Google
