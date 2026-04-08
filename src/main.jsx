@@ -3,15 +3,15 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { registerServiceWorker } from './registerSW'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 
-// Register service worker for PWA + mobile notifications
+// Register PWA service worker
 registerServiceWorker()
+
+// No GoogleOAuthProvider here — Google sign-in is handled via Firebase signInWithPopup
+// in useAuth.js, which avoids duplicate GSI initialization warnings entirely.
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <App />
-    </GoogleOAuthProvider>
+    <App />
   </StrictMode>,
 )

@@ -18,12 +18,11 @@ export function useTasks(userId) {
 
   useEffect(() => {
     if (!userId) {
-      console.warn("❌ No userId provided to useTasks")
+      // userId is null while auth is resolving — not an error, just wait
       setTasks([])
+      setTasksLoading(false)
       return
     }
-
-    console.log("✅ Fetching tasks for UID:", userId)
 
     setTasksLoading(true)
 
@@ -35,15 +34,11 @@ export function useTasks(userId) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const fetched = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-        setTasks(fetched)
+        setTasks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
         setTasksLoading(false)
       },
-      (error) => {
-        console.error("🔥 Firestore Error:", error)
+      (err) => {
+        console.error('[useTasks] Firestore error:', err)
         setTasksLoading(false)
       }
     )
@@ -52,11 +47,7 @@ export function useTasks(userId) {
   }, [userId])
 
   const addTask = async (task) => {
-    if (!userId) {
-      console.error("❌ Cannot add task: userId missing")
-      return
-    }
-
+    if (!userId) return console.error('[useTasks] addTask called without userId')
     try {
       await addDoc(collection(db, 'users', userId, 'tasks'), {
         ...task,
@@ -64,60 +55,50 @@ export function useTasks(userId) {
         createdAt: serverTimestamp(),
       })
     } catch (err) {
-      console.error("🔥 Add Task Error:", err)
+      console.error('[useTasks] addTask error:', err)
+      throw err // re-throw so App.jsx can catch and show toast
     }
   }
 
   const updateTask = async (id, updates) => {
     if (!userId) return
-
     try {
+      // Clear 1h notification flag if deadline changed
       const existing = tasks.find((t) => t.id === id)
-
       if (updates.deadline && existing?.deadline !== updates.deadline) {
         localStorage.removeItem(`study-notif-1h-${id}`)
       }
-
       await updateDoc(doc(db, 'users', userId, 'tasks', id), updates)
     } catch (err) {
-      console.error("🔥 Update Task Error:", err)
+      console.error('[useTasks] updateTask error:', err)
+      throw err
     }
   }
 
   const deleteTask = async (id) => {
     if (!userId) return
-
     try {
       localStorage.removeItem(`study-notif-1h-${id}`)
       localStorage.removeItem(`study-notif-daily-${id}`)
-
       await deleteDoc(doc(db, 'users', userId, 'tasks', id))
     } catch (err) {
-      console.error("🔥 Delete Task Error:", err)
+      console.error('[useTasks] deleteTask error:', err)
+      throw err
     }
   }
 
   const toggleComplete = async (id) => {
     if (!userId) return
-
     try {
       const task = tasks.find((t) => t.id === id)
       if (!task) return
-
       await updateDoc(doc(db, 'users', userId, 'tasks', id), {
         completed: !task.completed,
       })
     } catch (err) {
-      console.error("🔥 Toggle Error:", err)
+      console.error('[useTasks] toggleComplete error:', err)
     }
   }
 
-  return {
-    tasks,
-    tasksLoading,
-    addTask,
-    updateTask,
-    deleteTask,
-    toggleComplete,
-  }
+  return { tasks, tasksLoading, addTask, updateTask, deleteTask, toggleComplete }
 }

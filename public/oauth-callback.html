@@ -1,26 +1,49 @@
 <!DOCTYPE html>
-<html>
-<head><title>Connecting...</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connecting to Google Calendar...</title>
+  <style>
+    body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
+    .card { text-align: center; color: #6b7280; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
 <body>
-<script>
-  const params = new URLSearchParams(window.location.search)
-  const code = params.get('code')
-  const error = params.get('error')
+  <div class="card">
+    <div class="spinner"></div>
+    <p>Connecting to Google Calendar...</p>
+  </div>
+  <script>
+    (function () {
+      // Implicit flow: access_token arrives in the URL hash (#access_token=...)
+      const hash = new URLSearchParams(window.location.hash.slice(1))
+      const access_token = hash.get('access_token')
+      const hashError = hash.get('error')
 
-  if (window.opener) {
-    if (code) {
-      // Use '*' because this page doesn't know the app origin at runtime.
-      // The opener validates event.origin before trusting the message.
-      window.opener.postMessage({ type: 'GOOGLE_OAUTH_CODE', code }, '*')
-    } else if (error) {
-      window.opener.postMessage({ type: 'GOOGLE_OAUTH_ERROR', error }, '*')
-    }
-  }
+      // Authorization code flow fallback: code arrives in query string (?code=...)
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      const queryError = params.get('error')
 
-  window.close()
-</script>
-<p style="font-family:sans-serif;text-align:center;margin-top:40px;color:#6b7280;">
-  Connecting to Google Calendar...
-</p>
+      if (!window.opener) {
+        // Opened directly — nothing to do
+        document.querySelector('p').textContent = 'This page should only be opened by the app.'
+        return
+      }
+
+      if (access_token) {
+        window.opener.postMessage({ type: 'GOOGLE_OAUTH_TOKEN', access_token }, window.location.origin)
+      } else if (code) {
+        window.opener.postMessage({ type: 'GOOGLE_OAUTH_CODE', code }, window.location.origin)
+      } else if (hashError || queryError) {
+        window.opener.postMessage({ type: 'GOOGLE_OAUTH_ERROR', error: hashError || queryError }, window.location.origin)
+      }
+
+      // Small delay so the message has time to be received before the window closes
+      setTimeout(() => window.close(), 300)
+    })()
+  </script>
 </body>
 </html>

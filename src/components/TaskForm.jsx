@@ -12,6 +12,7 @@ export default function TaskForm({ onSubmit, editTask, onCancel }) {
         deadline: editTask.deadline,
         priority: editTask.priority,
         notes: editTask.notes || '',
+        eventId: editTask.eventId || null, // store Google Calendar eventId if exists
       })
     } else {
       setForm(defaultForm)
@@ -20,10 +21,10 @@ export default function TaskForm({ onSubmit, editTask, onCancel }) {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.title.trim() || !form.deadline) return
-    onSubmit(form)
+    await onSubmit(form)
     setForm(defaultForm)
   }
 

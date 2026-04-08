@@ -1,6 +1,6 @@
 /**
- * Registers the service worker and returns a helper to send
- * notifications through it (required for mobile background notifications).
+ * Registers the PWA service worker.
+ * Required for background notifications on mobile and offline support.
  */
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return null
@@ -16,17 +16,17 @@ export async function registerServiceWorker() {
 }
 
 /**
- * Send a notification via the active service worker.
- * This works on mobile even when the app is backgrounded/installed as PWA.
+ * Show a notification via the active service worker.
+ * Works on mobile even when the app is backgrounded or installed as a PWA.
+ * Falls back gracefully if SW is not available.
  */
 export async function showNotificationViaSW(title, body, tag) {
   if (!('serviceWorker' in navigator)) return false
 
-  const registration = await navigator.serviceWorker.ready
-  if (!registration) return false
-
-  // Use SW showNotification directly — works in background on Android
   try {
+    const registration = await navigator.serviceWorker.ready
+    if (!registration) return false
+
     await registration.showNotification(title, {
       body,
       icon: '/icons/icon-192.png',
