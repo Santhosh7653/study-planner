@@ -12,13 +12,40 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 
-export function useTasks(userId) {
+// ── Email notification helper ─────────────────────────────────────────────────
+async function notifyByEmail({ type, task, userEmail, userName, previousTask }) {
+  if (!userEmail) {
+    console.warn('[useTasks] No userEmail found, skipping email')
+    return
+  }
+
+  try {
+    console.log('[useTasks] Sending email:', type, task)
+
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        task,
+        email: userEmail,   // 🔥 FIXED (important)
+        userName,
+        previousTask,
+      }),
+    })
+
+    console.log('[useTasks] Email API response:', res.status)
+  } catch (err) {
+    console.warn('[useTasks] Email notification failed:', err.message)
+  }
+}
+
+export function useTasks(userId, userEmail, userName) {
   const [tasks, setTasks] = useState([])
   const [tasksLoading, setTasksLoading] = useState(false)
 
   useEffect(() => {
     if (!userId) {
-      // userId is null while auth is resolving — not an error, just wait
       setTasks([])
       setTasksLoading(false)
       return
@@ -46,35 +73,77 @@ export function useTasks(userId) {
     return unsubscribe
   }, [userId])
 
+  // ── addTask ─────────────────────────────────────────────────────────────────
   const addTask = async (task) => {
     if (!userId) return console.error('[useTasks] addTask called without userId')
+
     try {
-      await addDoc(collection(db, 'users', userId, 'tasks'), {
+      const docRef = await addDoc(collection(db, 'users', userId, 'tasks'), {
         ...task,
         completed: false,
+        reminderSent: false,
         createdAt: serverTimestamp(),
       })
+
+      // 🔥 Ensure email is actually triggered
+      await notifyByEmail({
+        type: 'task_created',
+        task: { ...task, id: docRef.id },
+        userEmail,
+        userName,
+      })
+
     } catch (err) {
       console.error('[useTasks] addTask error:', err)
-      throw err // re-throw so App.jsx can catch and show toast
+      throw err
     }
   }
 
+  // ── updateTask ──────────────────────────────────────────────────────────────
   const updateTask = async (id, updates) => {
     if (!userId) return
+
     try {
-      // Clear 1h notification flag if deadline changed
       const existing = tasks.find((t) => t.id === id)
-      if (updates.deadline && existing?.deadline !== updates.deadline) {
+
+      const deadlineChanged =
+        updates.deadline && existing?.deadline !== updates.deadline
+
+      const priorityChanged =
+        updates.priority && existing?.priority !== updates.priority
+
+      if (deadlineChanged) {
         localStorage.removeItem(`study-notif-1h-${id}`)
+        updates.reminderSent = false
       }
+
       await updateDoc(doc(db, 'users', userId, 'tasks', id), updates)
+
+      if (deadlineChanged) {
+        await notifyByEmail({
+          type: 'deadline_updated',
+          task: { ...existing, ...updates, id },
+          userEmail,
+          userName,
+          previousTask: existing,
+        })
+      } else if (priorityChanged) {
+        await notifyByEmail({
+          type: 'priority_changed',
+          task: { ...existing, ...updates, id },
+          userEmail,
+          userName,
+          previousTask: existing,
+        })
+      }
+
     } catch (err) {
       console.error('[useTasks] updateTask error:', err)
       throw err
     }
   }
 
+  // ── deleteTask ──────────────────────────────────────────────────────────────
   const deleteTask = async (id) => {
     if (!userId) return
     try {
@@ -87,6 +156,7 @@ export function useTasks(userId) {
     }
   }
 
+  // ── toggleComplete ──────────────────────────────────────────────────────────
   const toggleComplete = async (id) => {
     if (!userId) return
     try {

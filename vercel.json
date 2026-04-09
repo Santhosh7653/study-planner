@@ -1,7 +1,17 @@
 {
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/terms",   "destination": "/terms.html"   },
+    { "source": "/(.*)",    "destination": "/index.html"   }
+  ],
+  "crons": [
+    {
+      "path":     "/api/daily-reminder",
+      "schedule": "30 2 * * *"
+    },
+    {
+      "path":     "/api/deadline-reminder",
+      "schedule": "*/15 * * * *"
+    }
   ]
 }
