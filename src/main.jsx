@@ -5,7 +5,7 @@ import App from './App.jsx'
 import { registerServiceWorker } from './registerSW'
 
 // Register PWA service worker
-registerServiceWorker()
+//registerServiceWorker()
 
 // No GoogleOAuthProvider here — Google sign-in is handled via Firebase signInWithPopup
 // in useAuth.js, which avoids duplicate GSI initialization warnings entirely.
