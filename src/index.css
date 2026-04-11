@@ -10,6 +10,17 @@
   transition-timing-function: ease;
 }
 
+html {
+  scroll-behavior: smooth;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-width: 100vw;
+  overflow-x: hidden;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

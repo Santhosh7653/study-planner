@@ -2,9 +2,12 @@ import { useState } from 'react'
 import { isToday, isPast } from 'date-fns'
 import { motion, AnimatePresence } from 'framer-motion'
 import TaskCard from './TaskCard'
+import TodayModule from './TodayModule'
+import OverdueModule from './OverdueModule'
 
 const navItems = [
   { id: 'today',     label: 'Today',     icon: '📅' },
+  { id: 'overdue',   label: 'Overdue',   icon: '⚠️' },
   { id: 'upcoming',  label: 'Upcoming',  icon: '🗓️' },
   { id: 'all',       label: 'All Tasks', icon: '📋' },
   { id: 'completed', label: 'Completed', icon: '✅' },
@@ -35,7 +38,8 @@ export default function Dashboard({ tasks, onEdit, onDelete, onToggle, onAddTask
   const progress       = total > 0 ? Math.round((completedCount / total) * 100) : 0
 
   const counts = {
-    today:     todayTasks.length + overdue.length,
+    today:     todayTasks.length,
+    overdue:   overdue.length,
     upcoming:  upcoming.length,
     all:       tasks.filter((t) => !t.completed).length,
     completed: completedCount,
@@ -43,7 +47,8 @@ export default function Dashboard({ tasks, onEdit, onDelete, onToggle, onAddTask
 
   const getFiltered = () => {
     let base = []
-    if (activeNav === 'today')     base = [...overdue, ...todayTasks]
+    if (activeNav === 'today')     base = todayTasks
+    else if (activeNav === 'overdue')   base = overdue
     else if (activeNav === 'upcoming') base = upcoming
     else if (activeNav === 'all')  base = tasks.filter((t) => !t.completed)
     else                           base = completed
@@ -62,7 +67,7 @@ export default function Dashboard({ tasks, onEdit, onDelete, onToggle, onAddTask
   ]
 
   return (
-    <div className="flex gap-5 min-h-0">
+    <div className="flex flex-col lg:flex-row gap-5 min-h-0">
 
       {/* ── Mobile overlay ── */}
       <AnimatePresence>

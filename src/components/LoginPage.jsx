@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import ForgotPassword from './ForgotPassword'
 
 // Google SVG logo
 function GoogleIcon() {
@@ -19,7 +18,6 @@ export default function LoginPage({ onLogin, onGoogleLogin, onGoSignup }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [showForgot, setShowForgot] = useState(false)
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -39,8 +37,6 @@ export default function LoginPage({ onLogin, onGoogleLogin, onGoSignup }) {
     if (result?.error) setError(result.error)
     setGoogleLoading(false)
   }
-
-  if (showForgot) return <ForgotPassword onBack={() => setShowForgot(false)} />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
@@ -85,15 +81,6 @@ export default function LoginPage({ onLogin, onGoogleLogin, onGoSignup }) {
                 placeholder="••••••••" required
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
               />
-              <div className="text-right mt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowForgot(true)}
-                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  Forgot password?
-                </button>
-              </div>
             </div>
             <motion.button
               type="submit" disabled={loading} whileTap={{ scale: 0.98 }}

@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { showNotificationViaSW } from '../registerSW'
 
 const DAILY_KEY = (taskId) => `study-notif-daily-${taskId}`
 const HOUR_KEY  = (taskId) => `study-notif-1h-${taskId}`
@@ -15,14 +14,8 @@ async function requestPermission() {
 }
 
 // ── Send notification ─────────────────────────────────────────────────────────
-// Prefers SW-based showNotification (works on mobile / background).
-// Falls back to new Notification() for desktop browsers without SW.
+// Uses the browser Notification API directly.
 async function sendNotification(title, body, tag) {
-  // Try service worker path first (required for mobile PWA)
-  const sentViaSW = await showNotificationViaSW(title, body, tag)
-  if (sentViaSW) return
-
-  // Fallback: direct Notification API (desktop)
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification(title, {
       body,

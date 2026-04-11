@@ -52,7 +52,7 @@ export default function TaskForm({ onSubmit, editTask, onCancel }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-1">Deadline *</label>
           <input
@@ -92,7 +92,7 @@ export default function TaskForm({ onSubmit, editTask, onCancel }) {
         />
       </div>
 
-      <div className="flex gap-3 pt-1">
+      <div className="flex flex-col sm:flex-row gap-3 pt-1">
         <button
           type="submit"
           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition-colors"

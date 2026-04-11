@@ -11,6 +11,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase'
+import { apiUrl, safeFetch } from '../apiClient'
 
 // ── Email notification helper ─────────────────────────────────────────────────
 async function notifyByEmail({ type, task, userEmail, userName, previousTask }) {
@@ -22,7 +23,7 @@ async function notifyByEmail({ type, task, userEmail, userName, previousTask }) 
   try {
     console.log('[useTasks] Sending email:', type, task)
 
-    const res = await fetch('/api/send-email', {
+    const res = await safeFetch(apiUrl('/api/send-email'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -34,7 +35,7 @@ async function notifyByEmail({ type, task, userEmail, userName, previousTask }) 
       }),
     })
 
-    console.log('[useTasks] Email API response:', res.status)
+    if (res) console.log('[useTasks] Email API response:', res.status)
   } catch (err) {
     console.warn('[useTasks] Email notification failed:', err.message)
   }
@@ -112,6 +113,12 @@ export function useTasks(userId, userEmail, userName) {
       const priorityChanged =
         updates.priority && existing?.priority !== updates.priority
 
+      const titleChanged =
+        updates.title && existing?.title !== updates.title
+
+      const notesChanged =
+        updates.notes !== undefined && existing?.notes !== updates.notes
+
       if (deadlineChanged) {
         localStorage.removeItem(`study-notif-1h-${id}`)
         updates.reminderSent = false
@@ -119,6 +126,7 @@ export function useTasks(userId, userEmail, userName) {
 
       await updateDoc(doc(db, 'users', userId, 'tasks', id), updates)
 
+      // Send appropriate notification email based on what changed
       if (deadlineChanged) {
         await notifyByEmail({
           type: 'deadline_updated',
@@ -130,6 +138,22 @@ export function useTasks(userId, userEmail, userName) {
       } else if (priorityChanged) {
         await notifyByEmail({
           type: 'priority_changed',
+          task: { ...existing, ...updates, id },
+          userEmail,
+          userName,
+          previousTask: existing,
+        })
+      } else if (titleChanged) {
+        await notifyByEmail({
+          type: 'title_updated',
+          task: { ...existing, ...updates, id },
+          userEmail,
+          userName,
+          previousTask: existing,
+        })
+      } else if (notesChanged) {
+        await notifyByEmail({
+          type: 'notes_updated',
           task: { ...existing, ...updates, id },
           userEmail,
           userName,

@@ -61,7 +61,7 @@ export default function TaskModal({ open, onClose, onSubmit, editTask }) {
 
           {/* Sheet on mobile, centered modal on sm+ */}
           <motion.div
-            className="relative w-full sm:max-w-md bg-white dark:bg-gray-900 sm:rounded-2xl rounded-t-3xl shadow-2xl z-10 overflow-hidden"
+            className="relative w-full sm:max-w-md max-h-[calc(100vh-4rem)] overflow-y-auto bg-white dark:bg-gray-900 sm:rounded-2xl rounded-t-3xl shadow-2xl z-10"
             initial={{ opacity: 0, y: 60 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
@@ -134,7 +134,7 @@ export default function TaskModal({ open, onClose, onSubmit, editTask }) {
                   <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
                     Priority
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     {priorityOptions.map((opt) => (
                       <motion.button
                         key={opt.value}

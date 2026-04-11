@@ -122,7 +122,7 @@ export default function App() {
   const handleAddTask = () => { setEditTask(null); setModalOpen(true) }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300 overflow-x-hidden">
       <ReminderPopup tasks={tasks} />
       <ToastContainer toasts={toasts} onRemove={remove} />
       <TaskModal
@@ -134,7 +134,7 @@ export default function App() {
 
       {/* ── Header ── */}
       <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-sm shadow-md shadow-indigo-200 dark:shadow-none">
@@ -146,7 +146,7 @@ export default function App() {
           </div>
 
           {/* Right side — dark mode + user only; "New Task" removed (Add Task lives in Dashboard toolbar) */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-end">
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={toggleDark}

@@ -25,6 +25,6 @@ if (missingKeys.length > 0) {
 
 export const isFirebaseConfigured = missingKeys.length === 0
 
-const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
-export const db = getFirestore(app)
+const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null
+export const auth = app ? getAuth(app) : null
+export const db = app ? getFirestore(app) : null
