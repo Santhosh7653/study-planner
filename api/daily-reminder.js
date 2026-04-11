@@ -8,7 +8,7 @@
  * Cron schedule defined in vercel.json: "0 8 * * *"
  */
 import { adminDb, adminAuth } from './_firebaseAdmin.js'
-import { sendMail, htmlWrap, taskCardHtml } from './_mailer.js'
+import { sendMail, htmlWrap, taskCardHtml } from '../lib/emailService.js'
 
 // Guard: only allow Vercel's cron runner (or our own secret for manual testing)
 function isAuthorized(req) {

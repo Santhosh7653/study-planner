@@ -12,8 +12,14 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
-    // No proxy needed: under `vercel dev`, Vercel routes /api/* to serverless functions itself.
-    // Under plain `npm run dev` (no Vercel), /api calls go to http://localhost:3000 via apiClient.js.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+      },
+    },
   },
   build: {
     outDir: 'dist',

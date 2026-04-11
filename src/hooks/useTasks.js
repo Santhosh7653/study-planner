@@ -14,24 +14,32 @@ import { db } from '../firebase'
 import { apiUrl, safeFetch } from '../apiClient'
 
 // ── Email notification helper ─────────────────────────────────────────────────
-async function notifyByEmail({ type, task, userEmail, userName, previousTask }) {
+async function notifyByEmail({ eventType, task, userEmail, userName, previousTask }) {
   if (!userEmail) {
     console.warn('[useTasks] No userEmail found, skipping email')
     return
   }
 
   try {
-    console.log('[useTasks] Sending email:', type, task)
+    console.log('[useTasks] Sending email:', eventType, task)
 
     const res = await safeFetch(apiUrl('/api/send-email'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type,
-        task,
-        email: userEmail,   // 🔥 FIXED (important)
+        to: userEmail,
+        eventType,
+        taskTitle: task?.title,
+        priority: task?.priority,
+        dueDate: task?.deadline || task?.dueDate,
+        notes: task?.notes || '',
         userName,
-        previousTask,
+        changes: {
+          previousPriority: previousTask?.priority,
+          previousDeadline: previousTask?.deadline || previousTask?.dueDate,
+          previousTitle: previousTask?.title,
+          previousNotes: previousTask?.notes,
+        },
       }),
     })
 
@@ -88,7 +96,7 @@ export function useTasks(userId, userEmail, userName) {
 
       // 🔥 Ensure email is actually triggered
       await notifyByEmail({
-        type: 'task_created',
+        eventType: 'task_created',
         task: { ...task, id: docRef.id },
         userEmail,
         userName,
@@ -129,7 +137,7 @@ export function useTasks(userId, userEmail, userName) {
       // Send appropriate notification email based on what changed
       if (deadlineChanged) {
         await notifyByEmail({
-          type: 'deadline_updated',
+          eventType: 'due_date_changed',
           task: { ...existing, ...updates, id },
           userEmail,
           userName,
@@ -137,7 +145,7 @@ export function useTasks(userId, userEmail, userName) {
         })
       } else if (priorityChanged) {
         await notifyByEmail({
-          type: 'priority_changed',
+          eventType: 'priority_changed',
           task: { ...existing, ...updates, id },
           userEmail,
           userName,
@@ -145,7 +153,7 @@ export function useTasks(userId, userEmail, userName) {
         })
       } else if (titleChanged) {
         await notifyByEmail({
-          type: 'title_updated',
+          eventType: 'title_updated',
           task: { ...existing, ...updates, id },
           userEmail,
           userName,
@@ -153,7 +161,7 @@ export function useTasks(userId, userEmail, userName) {
         })
       } else if (notesChanged) {
         await notifyByEmail({
-          type: 'notes_updated',
+          eventType: 'notes_updated',
           task: { ...existing, ...updates, id },
           userEmail,
           userName,
