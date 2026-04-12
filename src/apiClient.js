@@ -26,6 +26,8 @@ export async function safeFetch(url, options) {
 
 export async function sendEmailNotification(type, payload) {
   try {
+    console.log('[apiClient] Sending payload:', JSON.stringify({ type, ...payload }))
+
     const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

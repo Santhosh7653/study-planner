@@ -264,11 +264,29 @@ app.delete('/api/tasks/:id', (req, res) => {
  */
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { to, type, eventType, taskTitle, subject, priority, dueDate, userName, changes, notes, tasks } = req.body
-    const emailType = type || eventType
+    const {
+      to,
+      type,
+      eventType,
+      title,
+      taskTitle,
+      subject,
+      priority,
+      dueDate,
+      userName,
+      changes,
+      notes,
+      tasks,
+    } = req.body
 
-    if (!emailType || !taskTitle) {
-      return res.status(400).json({ success: false, error: 'Missing required fields: type or taskTitle' })
+    const emailType = type || eventType
+    const resolvedTitle = taskTitle || title
+
+    if (!to || !emailType || !resolvedTitle) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: to, type/eventType, title/taskTitle',
+      })
     }
 
     let emailBody
@@ -286,7 +304,7 @@ app.post('/api/send-email', async (req, res) => {
     } else {
       emailBody = buildEventEmail({
         eventType: emailType,
-        taskTitle,
+        taskTitle: resolvedTitle,
         subject,
         priority,
         dueDate,
