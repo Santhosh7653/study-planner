@@ -101,14 +101,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: `Unknown type: ${emailType}` });
     }
 
-    const result = await sendMail({ to: recipient, subject, html });
+  const result = await sendMail({ to: recipient, subject, html });
 
-    if (!result.success) {
-      return res.status(500).json({ success: false, error: result.reason });
-    }
+// sendMail returns true/false not {success}
+if (!result) {
+  return res.status(500).json({ success: false, error: 'Email failed to send' });
+}
 
-    console.log('[send-email] Email sent:', subject, '->', recipient);
-    return res.status(200).json({ success: true, message: 'Email sent' });
+console.log('[send-email] Email sent:', subject, '->', recipient);
+return res.status(200).json({ success: true, message: 'Email sent' });
 
   } catch (err) {
     console.error('[send-email] Error:', err.message);
