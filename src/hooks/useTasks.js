@@ -11,7 +11,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import { apiUrl, safeFetch } from '../apiClient'
+import { sendEmailNotification } from '../apiClient'
 
 // ── Email notification helper ─────────────────────────────────────────────────
 async function notifyByEmail({ eventType, task, userEmail, userName, previousTask }) {
@@ -23,29 +23,29 @@ async function notifyByEmail({ eventType, task, userEmail, userName, previousTas
   try {
     console.log('[useTasks] Sending email:', eventType, task)
 
-    const res = await safeFetch(apiUrl('/api/send-email'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: userEmail,
-        eventType,
-        taskTitle: task?.title,
-        priority: task?.priority,
-        dueDate: task?.deadline || task?.dueDate,
-        notes: task?.notes || '',
-        userName,
-        changes: {
-          previousPriority: previousTask?.priority,
-          previousDeadline: previousTask?.deadline || previousTask?.dueDate,
-          previousTitle: previousTask?.title,
-          previousNotes: previousTask?.notes,
-        },
-      }),
+    const result = await sendEmailNotification(eventType, {
+      to: userEmail,
+      taskTitle: task?.title,
+      priority: task?.priority,
+      dueDate: task?.deadline || task?.dueDate,
+      notes: task?.notes || '',
+      userName,
+      changes: {
+        previousPriority: previousTask?.priority,
+        previousDeadline: previousTask?.deadline || previousTask?.dueDate,
+        previousTitle: previousTask?.title,
+        previousNotes: previousTask?.notes,
+      },
     })
 
-    if (res) console.log('[useTasks] Email API response:', res.status)
+    if (!result.success) {
+      console.warn('[useTasks] Email skipped or failed:', result.reason || 'unknown')
+    }
+
+    return result
   } catch (err) {
-    console.warn('[useTasks] Email notification failed:', err.message)
+    console.warn('[useTasks] Email error (non-blocking):', err.message)
+    return { success: false, reason: err.message }
   }
 }
 
@@ -94,14 +94,27 @@ export function useTasks(userId, userEmail, userName) {
         createdAt: serverTimestamp(),
       })
 
-      // 🔥 Ensure email is actually triggered
-      await notifyByEmail({
+      const newTask = { ...task, id: docRef.id }
+      console.log('[useTasks] Task created successfully', newTask)
+
+      notifyByEmail({
         eventType: 'task_created',
-        task: { ...task, id: docRef.id },
+        task: newTask,
         userEmail,
         userName,
       })
+        .then((result) => {
+          if (result?.success) {
+            console.log('[useTasks] ✅ Email sent successfully')
+          } else {
+            console.warn('[useTasks] ⚠️ Email skipped or failed:', result?.reason)
+          }
+        })
+        .catch((err) => {
+          console.warn('[useTasks] ⚠️ Email error (non-blocking):', err.message)
+        })
 
+      return newTask
     } catch (err) {
       console.error('[useTasks] addTask error:', err)
       throw err
@@ -134,39 +147,37 @@ export function useTasks(userId, userEmail, userName) {
 
       await updateDoc(doc(db, 'users', userId, 'tasks', id), updates)
 
-      // Send appropriate notification email based on what changed
+      const updatedTask = { ...existing, ...updates, id }
+      let emailType = null
+
       if (deadlineChanged) {
-        await notifyByEmail({
-          eventType: 'due_date_changed',
-          task: { ...existing, ...updates, id },
-          userEmail,
-          userName,
-          previousTask: existing,
-        })
+        emailType = 'due_date_changed'
       } else if (priorityChanged) {
-        await notifyByEmail({
-          eventType: 'priority_changed',
-          task: { ...existing, ...updates, id },
-          userEmail,
-          userName,
-          previousTask: existing,
-        })
+        emailType = 'priority_changed'
       } else if (titleChanged) {
-        await notifyByEmail({
-          eventType: 'title_updated',
-          task: { ...existing, ...updates, id },
-          userEmail,
-          userName,
-          previousTask: existing,
-        })
+        emailType = 'title_updated'
       } else if (notesChanged) {
-        await notifyByEmail({
-          eventType: 'notes_updated',
-          task: { ...existing, ...updates, id },
+        emailType = 'notes_updated'
+      }
+
+      if (emailType) {
+        notifyByEmail({
+          eventType: emailType,
+          task: updatedTask,
           userEmail,
           userName,
           previousTask: existing,
         })
+          .then((result) => {
+            if (result?.success) {
+              console.log('[useTasks] ✅ Update email sent successfully')
+            } else {
+              console.warn('[useTasks] ⚠️ Update email skipped or failed:', result?.reason)
+            }
+          })
+          .catch((err) => {
+            console.warn('[useTasks] ⚠️ Update email error (non-blocking):', err.message)
+          })
       }
 
     } catch (err) {

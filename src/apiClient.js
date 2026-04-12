@@ -23,3 +23,26 @@ export async function safeFetch(url, options) {
     return null
   }
 }
+
+export async function sendEmailNotification(type, payload) {
+  try {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, ...payload }),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      console.warn('[apiClient] Email API error:', response.status, text)
+      return { success: false }
+    }
+
+    const data = await response.json()
+    console.log('[apiClient] Email API response:', response.status, data)
+    return data
+  } catch (err) {
+    console.warn('[apiClient] fetch failed for /api/send-email:', err.message)
+    return { success: false }
+  }
+}

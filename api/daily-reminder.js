@@ -81,13 +81,13 @@ export default async function handler(req, res) {
           </p>
         </div>`
 
-      const sent = await sendMail({
+      const result = await sendMail({
         to: userEmail,
         subject,
         html: htmlWrap(subject, bodyHtml),
       })
 
-      if (sent) emailsSent++
+      if (result.success) emailsSent++
       usersProcessed++
     }
 
