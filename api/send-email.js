@@ -1,5 +1,5 @@
-// v4 - matched to useTasks.js payload shape
-import nodemailer from 'nodemailer';
+// v5 - uses _mailer.js, matched to useTasks.js payload
+import { sendMail } from './_mailer.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '1mb' } },
@@ -24,22 +24,15 @@ export default async function handler(req, res) {
 
     console.log('[send-email] Received body:', JSON.stringify(body));
 
-    // useTasks.js sends: eventType, taskTitle, priority, dueDate, notes, to, userName, changes
+    // useTasks.js sends: eventType, taskTitle, dueDate, priority, notes, to, userName, changes
     const {
-      type,        // fallback
-      eventType,   // useTasks.js sends this
-      title,       // fallback
-      taskTitle,   // useTasks.js sends this
-      priority,
-      dueDate,
-      deadline,
-      notes,
-      to,
-      userName,
-      changes,
+      eventType, type,
+      taskTitle, title,
+      dueDate, deadline,
+      priority, notes,
+      to, userName, changes,
     } = body;
 
-    // Normalize field names
     const emailType = eventType || type;
     const taskName  = taskTitle || title;
     const taskDue   = dueDate || deadline;
@@ -48,40 +41,27 @@ export default async function handler(req, res) {
     console.log('[send-email] Resolved → type:', emailType, 'task:', taskName, 'to:', recipient);
 
     if (!emailType || !taskName) {
-      console.error('[send-email] Missing fields. emailType:', emailType, 'taskName:', taskName);
       return res.status(400).json({
         success: false,
-        error: `Missing required fields. Got: ${JSON.stringify({ eventType, type, taskTitle, title })}`,
+        error: `Missing fields. Got: ${JSON.stringify({ emailType, taskName })}`,
       });
     }
 
-    const EMAIL_USER = process.env.EMAIL_USER;
-    const EMAIL_PASS = process.env.EMAIL_PASS;
-    const SMTP_FROM  = process.env.SMTP_FROM || EMAIL_USER;
+    const tableRow = (label, value, color = '') =>
+      `<tr>
+        <td style="padding:8px;background:#f5f5f5;font-weight:bold">${label}</td>
+        <td style="padding:8px;${color ? `color:${color}` : ''}">${value || 'N/A'}</td>
+      </tr>`;
 
-    if (!EMAIL_USER || !EMAIL_PASS) {
-      console.error('[send-email] Missing EMAIL_USER or EMAIL_PASS');
-      return res.status(500).json({ success: false, error: 'Email not configured' });
-    }
-
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-    });
+    const wrapper = (heading, color, rows) => `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e0e0e0;border-radius:8px">
+        <h2 style="color:${color}">${heading}</h2>
+        <table style="width:100%;border-collapse:collapse">${rows}</table>
+        <p style="color:#888;font-size:12px;margin-top:24px">Sent by Study Planner</p>
+      </div>`;
 
     let subject = '';
     let html = '';
-
-    const tableRow = (label, value, color = '') =>
-      `<tr><td style="padding:8px;background:#f5f5f5;font-weight:bold">${label}</td><td style="padding:8px;${color ? `color:${color}` : ''}">${value || 'N/A'}</td></tr>`;
-
-    const wrapper = (title, color, rows) => `
-      <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e0e0e0;border-radius:8px">
-        <h2 style="color:${color}">${title}</h2>
-        <table style="width:100%;border-collapse:collapse">${rows}</table>
-        <p style="color:#888;font-size:12px;margin-top:24px">Sent by Study Planner</p>
-      </div>
-    `;
 
     if (emailType === 'task_created') {
       subject = `New Task Added: ${taskName}`;
@@ -113,20 +93,19 @@ export default async function handler(req, res) {
       );
     } else if (emailType === 'notes_updated') {
       subject = `Notes Updated: ${taskName}`;
-      html = wrapper('Task Notes Updated', '#8b5cf6',
+      html = wrapper('Notes Updated', '#8b5cf6',
         tableRow('Title', taskName) +
         tableRow('Notes', notes || 'None')
       );
     } else {
-      return res.status(400).json({ success: false, error: `Unknown email type: ${emailType}` });
+      return res.status(400).json({ success: false, error: `Unknown type: ${emailType}` });
     }
 
-    await transporter.sendMail({
-      from: `"Study Planner" <${SMTP_FROM}>`,
-      to: recipient,
-      subject,
-      html,
-    });
+    const result = await sendMail({ to: recipient, subject, html });
+
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.reason });
+    }
 
     console.log('[send-email] Email sent:', subject, '->', recipient);
     return res.status(200).json({ success: true, message: 'Email sent' });
