@@ -1,3 +1,4 @@
+// v3 - fixed body parsing
 import nodemailer from 'nodemailer';
 
 export const config = {
