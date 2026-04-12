@@ -23,23 +23,25 @@ export async function safeFetch(url, options) {
     return null
   }
 }
-
 export async function sendEmailNotification(type, payload) {
   try {
     console.log('[apiClient] Sending payload:', JSON.stringify({ type, ...payload }))
-
     const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, ...payload }),
+      body: JSON.stringify({
+        type,
+        task: payload,           // ← wrap payload as "task"
+        userEmail: payload.userEmail || payload.email || '',
+        title: payload.title,    // ← also send flat fields as fallback
+        ...payload,
+      }),
     })
-
     if (!response.ok) {
       const text = await response.text()
       console.warn('[apiClient] Email API error:', response.status, text)
       return { success: false }
     }
-
     const data = await response.json()
     console.log('[apiClient] Email API response:', response.status, data)
     return data
