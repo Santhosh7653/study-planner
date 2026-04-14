@@ -6,6 +6,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { existsSync } from 'fs'
 import { sendMail, buildEventEmail } from './lib/emailService.js'
+import { sendDailyDigest, sendHourlyReminders } from './lib/reminderService.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -228,24 +229,25 @@ app.post('/api/send-email', async (req, res) => {
 })
 
 // ── Schedulers ────────────────────────────────────────────────────────────────
-cron.schedule('0 8 * * *', () => {
-  console.log('⏰ Daily reminder scheduler triggered')
-})
 
-cron.schedule('* * * * *', () => {
-  const now = new Date()
-  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
-  for (const [, userTasks] of Object.entries(tasksStore)) {
-    for (const task of userTasks) {
-      if (task.completed) continue
-      const deadline = new Date(task.deadline)
-      if (deadline > now && deadline <= oneHourFromNow && !task.reminderSent1h) {
-        task.reminderSent1h = true
-        console.log(`📧 1-hour reminder: ${task.title}`)
-      }
-    }
+// Daily digest at 8:00 AM IST = 2:30 AM UTC
+cron.schedule('30 2 * * *', async () => {
+  console.log('⏰ [cron] Daily digest triggered (8:00 AM IST)')
+  try {
+    await sendDailyDigest()
+  } catch (err) {
+    console.error('[cron] Daily digest error:', err.message)
   }
-})
+}, { timezone: 'UTC' })
+
+// 1-hour deadline reminder — runs every minute
+cron.schedule('* * * * *', async () => {
+  try {
+    await sendHourlyReminders()
+  } catch (err) {
+    console.error('[cron] Hourly reminder error:', err.message)
+  }
+}, { timezone: 'UTC' })
 
 // ── Serve built React app in production ───────────────────────────────────────
 const distPath = path.join(__dirname, 'dist')

@@ -38,6 +38,6 @@ localPort = 5000
 externalPort = 5000
 
 [deployment]
-deploymentTarget = "cloudrun"
-run = ["sh", "-c", "npm start"]
-build = ["sh", "-c", "npm run build"]
+deploymentTarget = "vm"
+run = ["node", "server.js"]
+build = ["npm", "run", "build"]
