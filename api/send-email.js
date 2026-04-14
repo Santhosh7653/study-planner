@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 
 export const config = {
   api: {
-    bodyParser: false, // We handle parsing manually
+    bodyParser: false,
   },
 };
 
@@ -27,14 +27,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Manually read and parse body — most reliable on Vercel
     const rawBody = await getRawBody(req);
     console.log('[send-email] Raw body string:', rawBody);
 
     let body = {};
     if (rawBody) {
-      try { body = JSON.parse(rawBody); } 
-      catch (e) { 
+      try { body = JSON.parse(rawBody); }
+      catch (e) {
         console.error('[send-email] JSON parse error:', e.message);
         return res.status(400).json({ success: false, error: 'Invalid JSON body' });
       }
@@ -42,9 +41,8 @@ export default async function handler(req, res) {
 
     console.log('[send-email] Parsed body:', JSON.stringify(body));
 
-    // Accept ALL possible field name variations
     const emailType = body.eventType || body.type || '';
-    const taskName  = body.taskTitle || body.title || 
+    const taskName  = body.taskTitle || body.title ||
                       (typeof body.task === 'string' ? body.task : body.task?.title) || '';
     const taskDue   = body.dueDate || body.deadline || body.task?.deadline || '';
     const priority  = body.priority || body.task?.priority || '';
@@ -164,12 +162,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[send-email] ❌ Error:', err.message, err.stack);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-}
-
-  } catch (err) {
-    console.error('[send-email] ❌ Error:', err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
