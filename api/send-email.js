@@ -1,22 +1,6 @@
-// v7 - bulletproof body parsing for Vercel
-import nodemailer from 'nodemailer';
+const nodemailer = require('nodemailer');
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-async function getRawBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', chunk => { data += chunk.toString(); });
-    req.on('end', () => resolve(data));
-    req.on('error', reject);
-  });
-}
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
@@ -27,10 +11,15 @@ export default async function handler(req, res) {
   }
 
   try {
-        console.log('[send-email] Method:', req.method, 'Headers:', JSON.stringify(req.headers))  // ADD THIS
+    // Manual body parsing — required for Vercel serverless
+    const rawBody = await new Promise((resolve, reject) => {
+      let data = '';
+      req.on('data', chunk => { data += chunk.toString(); });
+      req.on('end', () => resolve(data));
+      req.on('error', reject);
+    });
 
-    const rawBody = await getRawBody(req);
-    console.log('[send-email] Raw body string:', rawBody);
+    console.log('[send-email] Raw body:', rawBody);
 
     let body = {};
     if (rawBody) {
@@ -45,36 +34,27 @@ export default async function handler(req, res) {
 
     const emailType = body.eventType || body.type || '';
     const taskName  = body.taskTitle || body.title ||
-                      (typeof body.task === 'string' ? body.task : body.task?.title) || '';
-    const taskDue   = body.dueDate || body.deadline || body.task?.deadline || '';
-    const priority  = body.priority || body.task?.priority || '';
-    const notes     = body.notes || body.task?.notes || '';
+                      (typeof body.task === 'string' ? body.task : body.task && body.task.title) || '';
+    const taskDue   = body.dueDate || body.deadline || (body.task && body.task.deadline) || '';
+    const priority  = body.priority || (body.task && body.task.priority) || '';
+    const notes     = body.notes || (body.task && body.task.notes) || '';
     const changes   = body.changes || {};
-    const userName  = body.userName || 'there';
     const recipient = body.to || body.userEmail || body.email ||
                       process.env.RECIPIENT_EMAIL ||
                       process.env.EMAIL_USER ||
                       process.env.GMAIL_USER || '';
 
-    console.log('[send-email] Resolved fields:', { emailType, taskName, recipient });
+    console.log('[send-email] Resolved:', { emailType, taskName, recipient });
 
     if (!emailType) {
-      return res.status(400).json({
-        success: false,
-        error: `Missing emailType. Body was: ${JSON.stringify(body)}`
-      });
+      return res.status(400).json({ success: false, error: `Missing emailType. Body: ${JSON.stringify(body)}` });
     }
-
     if (!taskName) {
-      return res.status(400).json({
-        success: false,
-        error: `Missing taskName. Body was: ${JSON.stringify(body)}`
-      });
+      return res.status(400).json({ success: false, error: `Missing taskName. Body: ${JSON.stringify(body)}` });
     }
 
     const EMAIL_USER = process.env.EMAIL_USER || process.env.GMAIL_USER;
     const EMAIL_PASS = process.env.EMAIL_PASS || process.env.GMAIL_PASS;
-    const SMTP_FROM  = process.env.SMTP_FROM || EMAIL_USER;
     const SEND_TO    = recipient || EMAIL_USER;
 
     if (!EMAIL_USER || !EMAIL_PASS) {
@@ -153,7 +133,7 @@ export default async function handler(req, res) {
     }
 
     await transporter.sendMail({
-      from: `"Study Planner" <${SMTP_FROM}>`,
+      from: `"Study Planner" <${EMAIL_USER}>`,
       to: SEND_TO,
       subject,
       html,
@@ -166,4 +146,4 @@ export default async function handler(req, res) {
     console.error('[send-email] ❌ Error:', err.message, err.stack);
     return res.status(500).json({ success: false, error: err.message });
   }
-}
+};
