@@ -5,12 +5,25 @@ import cron from 'node-cron'
 import { sendMail, buildEventEmail } from './lib/emailService.js'
 
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.API_PORT || 3001
 
 app.use(express.json())
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        /localhost/.test(origin) ||
+        /127\.0\.0\.1/.test(origin) ||
+        /\.replit\.dev$/.test(origin) ||
+        /\.repl\.co$/.test(origin) ||
+        /\.replit\.app$/.test(origin)
+      ) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
     credentials: true,
   })
 )
