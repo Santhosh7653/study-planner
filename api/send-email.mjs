@@ -27,6 +27,8 @@ export default async function handler(req, res) {
   }
 
   try {
+        console.log('[send-email] Method:', req.method, 'Headers:', JSON.stringify(req.headers))  // ADD THIS
+
     const rawBody = await getRawBody(req);
     console.log('[send-email] Raw body string:', rawBody);
 
