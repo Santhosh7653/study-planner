@@ -2,10 +2,15 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import cron from 'node-cron'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { existsSync } from 'fs'
 import { sendMail, buildEventEmail } from './lib/emailService.js'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
-const PORT = process.env.API_PORT || 3001
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const PORT = process.env.API_PORT || process.env.PORT || 5000
 
 app.use(express.json())
 app.use(
@@ -242,8 +247,18 @@ cron.schedule('* * * * *', () => {
   }
 })
 
+// ── Serve built React app in production ───────────────────────────────────────
+const distPath = path.join(__dirname, 'dist')
+if (existsSync(distPath)) {
+  app.use(express.static(distPath))
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next()
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+}
+
 // ── Start server ──────────────────────────────────────────────────────────────
-const httpServer = app.listen(PORT, () => {
+const httpServer = app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Study Planner server running on port ${PORT}`)
   console.log('📧 Email service ready')
   console.log('⏰ Reminders scheduler active')
