@@ -25,28 +25,32 @@ export async function safeFetch(url, options) {
 }
 export async function sendEmailNotification(type, payload) {
   try {
-    console.log('[apiClient] Sending payload:', JSON.stringify({ type, ...payload }))
+    const body = JSON.stringify({ eventType: type, ...payload })
+    console.log('[apiClient] Sending to /api/send-email:', body)
+    
     const response = await fetch('/api/send-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        task: payload,           // ← wrap payload as "task"
-        userEmail: payload.userEmail || payload.email || '',
-        title: payload.title,    // ← also send flat fields as fallback
-        ...payload,
-      }),
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body,
     })
+
+    const text = await response.text()
+    console.log('[apiClient] Raw response:', response.status, text)
+    
+    let data
+    try { data = JSON.parse(text) } catch { data = { success: false, raw: text } }
+    
     if (!response.ok) {
-      const text = await response.text()
-      console.warn('[apiClient] Email API error:', response.status, text)
-      return { success: false }
+      console.warn('[apiClient] Email API error:', response.status, data)
+      return { success: false, reason: data?.error || text }
     }
-    const data = await response.json()
-    console.log('[apiClient] Email API response:', response.status, data)
+    
     return data
   } catch (err) {
-    console.warn('[apiClient] fetch failed for /api/send-email:', err.message)
-    return { success: false }
+    console.warn('[apiClient] fetch failed:', err.message)
+    return { success: false, reason: err.message }
   }
 }
