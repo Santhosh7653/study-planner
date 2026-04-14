@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
-// Google SVG logo
 function GoogleIcon() {
   return (
     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
@@ -12,6 +11,13 @@ function GoogleIcon() {
     </svg>
   )
 }
+
+const features = [
+  { icon: '📅', title: 'Smart Scheduling', desc: 'Organize tasks by priority and deadline' },
+  { icon: '🔔', title: 'Email Reminders', desc: 'Never miss a deadline with timely alerts' },
+  { icon: '📊', title: 'Progress Tracking', desc: 'Visualize your study progress at a glance' },
+  { icon: '🗓️', title: 'Calendar Sync', desc: 'Integrate with Google Calendar seamlessly' },
+]
 
 export default function LoginPage({ onLogin, onGoogleLogin, onGoSignup }) {
   const [form, setForm] = useState({ email: '', password: '' })
@@ -39,92 +45,139 @@ export default function LoginPage({ onLogin, onGoogleLogin, onGoSignup }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
-      <motion.div
-        className="w-full max-w-md"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-2xl text-3xl mb-4">📚</div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Study Planner</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Welcome back! Sign in to continue.</p>
-        </div>
+    <div className="min-h-screen flex">
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 flex-col justify-between p-12 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-60 h-60 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/3" />
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-6">Sign In</h2>
-
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded-xl px-4 py-3 mb-5"
-            >
-              {error}
-            </motion.div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Email</label>
-              <input
-                type="email" name="email" value={form.email} onChange={handleChange}
-                placeholder="you@example.com" required
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Password</label>
-              <input
-                type="password" name="password" value={form.password} onChange={handleChange}
-                placeholder="••••••••" required
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-              />
-            </div>
-            <motion.button
-              type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 rounded-xl text-sm transition-colors shadow-md shadow-indigo-200 dark:shadow-none mt-2"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </span>
-              ) : 'Sign In'}
-            </motion.button>
-          </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-            <span className="text-xs text-gray-400 dark:text-gray-500">or</span>
-            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-xl shadow-lg">📚</div>
+            <span className="text-white font-bold text-lg tracking-tight">Study Planner</span>
           </div>
 
-          {/* Google Sign-In — uses Firebase signInWithPopup, also captures Calendar access token */}
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={handleGoogleLogin}
-            disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm disabled:opacity-60"
-          >
-            {googleLoading ? (
-              <span className="w-4 h-4 border-2 border-gray-300 border-t-indigo-600 rounded-full animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
-            {googleLoading ? 'Signing in...' : 'Continue with Google'}
-          </motion.button>
-
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-            Don't have an account?{' '}
-            <button onClick={onGoSignup} className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-              Sign up
-            </button>
+          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+            Plan smarter,<br />
+            <span className="text-indigo-200">study better.</span>
+          </h2>
+          <p className="text-indigo-200 text-base leading-relaxed max-w-xs">
+            Your all-in-one study companion that keeps you organized, focused, and on track.
           </p>
         </div>
-      </motion.div>
+
+        <div className="relative space-y-4">
+          {features.map((f) => (
+            <div key={f.title} className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-3.5">
+              <span className="text-2xl">{f.icon}</span>
+              <div>
+                <p className="text-white font-semibold text-sm">{f.title}</p>
+                <p className="text-indigo-200 text-xs">{f.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col justify-center items-center bg-gray-50 dark:bg-gray-950 p-6 sm:p-12">
+        <motion.div
+          className="w-full max-w-md"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-2xl mb-3 shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40">📚</div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Study Planner</h1>
+          </div>
+
+          <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
+            <div className="mb-7">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Sign in to continue to your dashboard</p>
+            </div>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm rounded-xl px-4 py-3 mb-5"
+              >
+                <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                {error}
+              </motion.div>
+            )}
+
+            {/* Google Sign-In first (most prominent) */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md disabled:opacity-60"
+            >
+              {googleLoading
+                ? <span className="w-4 h-4 border-2 border-gray-300 border-t-indigo-600 rounded-full animate-spin" />
+                : <GoogleIcon />
+              }
+              {googleLoading ? 'Signing in...' : 'Continue with Google'}
+            </motion.button>
+
+            <div className="flex items-center gap-3 my-5">
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">or sign in with email</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
+              <div>
+                <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email</label>
+                <input
+                  id="login-email"
+                  type="email" name="email" value={form.email} onChange={handleChange}
+                  placeholder="you@example.com" required
+                  autoComplete="email"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                </div>
+                <input
+                  id="login-password"
+                  type="password" name="password" value={form.password} onChange={handleChange}
+                  placeholder="••••••••" required
+                  autoComplete="current-password"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition placeholder-gray-400 dark:placeholder-gray-500"
+                />
+              </div>
+              <motion.button
+                type="submit" disabled={loading} whileTap={{ scale: 0.98 }}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-200 dark:shadow-indigo-900/40 hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/50 mt-1"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Signing in...
+                  </span>
+                ) : 'Sign In'}
+              </motion.button>
+            </form>
+
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
+              Don't have an account?{' '}
+              <button onClick={onGoSignup} className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 font-semibold transition-colors">
+                Create one free
+              </button>
+            </p>
+          </div>
+        </motion.div>
+      </div>
     </div>
   )
 }

@@ -1,0 +1,69 @@
+Upgrade my existing React (Vite) Study Planner web app UI to a modern, highly interactive, and fully responsive design with a clean and professional look.
+
+Requirements:
+
+1. UI/UX Design:
+
+* Use a modern design system inspired by apps like Notion, Google Calendar, and Trello
+* Clean layout with proper spacing, alignment, and visual hierarchy
+* Use soft shadows, rounded corners (border-radius: 12px+), and smooth transitions
+* Add hover effects, focus states, and subtle animations (use CSS or Framer Motion)
+
+2. Color Theme:
+
+* Use a visually appealing color palette:
+
+  * Primary: #4F46E5 (Indigo)
+  * Secondary: #22C55E (Green)
+  * Accent: #F59E0B (Amber)
+  * Background: #F9FAFB (Light Gray)
+  * Text: #111827 (Dark Gray)
+* Support dark mode toggle (optional but preferred)
+
+3. Responsiveness:
+
+* Fully responsive for mobile, tablet, and desktop
+* Use Flexbox/Grid properly
+* Add a mobile-friendly navigation (hamburger menu or bottom nav)
+
+4. Components to Improve:
+
+* Task cards (add priority colors, icons, hover animations)
+* Forms (modern inputs, floating labels, validation styles)
+* Buttons (primary, secondary, disabled states with transitions)
+* Navbar (sticky, clean, minimal)
+* Dashboard layout (sidebar + content or card-based layout)
+
+5. Interactivity:
+
+* Add smooth animations when:
+
+  * Adding a task
+  * Updating priority/deadline
+  * Deleting a task
+* Use toast notifications for success/error messages
+* Add loading states (spinners or skeletons)
+
+6. Features Enhancement:
+
+* Add filters (by priority, deadline, completed)
+* Add search functionality
+* Add progress indicator (tasks completed)
+* Add empty state UI with illustration/message
+
+7. Code Quality:
+
+* Use reusable components
+* Keep code clean and modular
+* Use Tailwind CSS or modern CSS approach (preferred)
+
+8. Accessibility:
+
+* Proper contrast ratios
+* Keyboard navigation support
+* ARIA labels where needed
+
+Goal:
+Make the app look like a professional SaaS product that is visually appealing, intuitive, and smooth to use, suitable for showcasing in a portfolio or demo.
+
+Provide updated React components, styles, and any required libraries.

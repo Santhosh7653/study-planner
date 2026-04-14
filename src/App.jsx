@@ -177,23 +177,17 @@ export default function App() {
 
       {/* ── Main ── */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {tasksLoading ? (
-          <div className="flex flex-col items-center justify-center py-32 gap-4 text-gray-400">
-            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-            <span className="text-sm">Loading tasks...</span>
-          </div>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-4">
-            <CalendarConnect userId={userId} />
-            <Dashboard
-              tasks={tasks}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onToggle={handleToggle}
-              onAddTask={handleAddTask}
-            />
-          </motion.div>
-        )}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="flex flex-col gap-4">
+          <CalendarConnect userId={userId} />
+          <Dashboard
+            tasks={tasks}
+            loading={tasksLoading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggle={handleToggle}
+            onAddTask={handleAddTask}
+          />
+        </motion.div>
       </main>
 
       {/* ── Mobile FAB ── */}
