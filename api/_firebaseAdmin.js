@@ -12,8 +12,11 @@ if (!admin.apps.length) {
     if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
       privateKey = privateKey.slice(1, -1)
     }
-    // Unescape any level of escaped newlines (\\n → \n → real newline)
-    privateKey = privateKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n')
+    // Remove literal backslashes that appear before real newlines (e.g. \<LF>)
+    privateKey = privateKey.replace(/\\\n/g, '\n')
+    // Also handle escaped-newline sequences that are still text
+    privateKey = privateKey.replace(/\\n/g, '\n')
+    privateKey = privateKey.trim()
   }
 
   if (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_CLIENT_EMAIL || !privateKey) {
