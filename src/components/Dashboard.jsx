@@ -70,14 +70,20 @@ export default function Dashboard({ tasks, onEdit, onDelete, onToggle, onAddTask
 
   const getFiltered = () => {
     let base = []
-    if (activeNav === 'today')     base = todayTasks
-    else if (activeNav === 'overdue')   base = overdue
-    else if (activeNav === 'upcoming')  base = upcoming
-    else if (activeNav === 'all')       base = tasks.filter((t) => !t.completed)
-    else                                base = completed
+    if (activeNav === 'today')        base = todayTasks
+    else if (activeNav === 'overdue') base = overdue
+    else if (activeNav === 'upcoming')base = upcoming
+    else if (activeNav === 'all')     base = tasks.filter((t) => !t.completed)
+    else                              base = completed
+
     return base
       .filter((t) => t.title.toLowerCase().includes(search.toLowerCase()))
       .filter((t) => filterPriority === 'all' || t.priority === filterPriority)
+      .sort((a, b) => {
+        const aMs = a.deadline ? new Date(a.deadline?.toDate?.() ?? a.deadline).getTime() : Infinity
+        const bMs = b.deadline ? new Date(b.deadline?.toDate?.() ?? b.deadline).getTime() : Infinity
+        return aMs - bMs
+      })
   }
 
   const filtered = getFiltered()

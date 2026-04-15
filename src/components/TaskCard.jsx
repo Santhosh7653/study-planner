@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { format, isPast, isToday } from 'date-fns'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { useNow } from '../context/TimeContext'
 
+// ── Priority config ───────────────────────────────────────────────────────────
 const priorityConfig = {
   high: {
     dot:    'bg-red-500',
@@ -26,86 +28,169 @@ const priorityConfig = {
   },
 }
 
-function useCountdown(deadline) {
-  const [remaining, setRemaining] = useState(() => deadline - Date.now())
-
-  useEffect(() => {
-    const tick = () => setRemaining(deadline - Date.now())
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [deadline])
-
-  return remaining
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function safeMs(value) {
+  if (!value) return null
+  const d = value?.toDate?.() ?? new Date(value)
+  return isNaN(d.getTime()) ? null : d.getTime()
 }
 
-function CountdownTimer({ deadline, completed }) {
-  const ms = useCountdown(deadline)
+function pad(n) {
+  return String(n).padStart(2, '0')
+}
 
-  if (completed) return null
-
-  const overdue = ms < 0
-  const abs = Math.abs(ms)
-  const totalSecs = Math.floor(abs / 1000)
+function formatCountdown(absMs) {
+  const totalSecs = Math.floor(absMs / 1000)
   const days  = Math.floor(totalSecs / 86400)
   const hours = Math.floor((totalSecs % 86400) / 3600)
   const mins  = Math.floor((totalSecs % 3600) / 60)
   const secs  = totalSecs % 60
+  if (days > 0) return `${days}d ${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
+  return `${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
+}
 
-  const pad = n => String(n).padStart(2, '0')
+// Urgency levels: 'overdue' | 'critical' | 'warning' | 'soon' | 'normal'
+function getUrgency(ms) {
+  if (ms < 0)               return 'overdue'
+  if (ms < 3_600_000)       return 'critical'   // < 1h
+  if (ms < 86_400_000)      return 'warning'    // < 24h
+  if (ms < 3 * 86_400_000)  return 'soon'       // < 3 days
+  return 'normal'
+}
 
-  let display
-  if (days > 0) {
-    display = `${days}d ${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
-  } else {
-    display = `${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
-  }
+const urgencyStyles = {
+  overdue:  {
+    strip:  'border-red-200   dark:border-red-800/40   bg-red-50   dark:bg-red-900/20',
+    text:   'text-red-600     dark:text-red-400',
+    bar:    'bg-red-500',
+    pulse:  false,
+  },
+  critical: {
+    strip:  'border-red-200   dark:border-red-800/40   bg-red-50   dark:bg-red-900/20',
+    text:   'text-red-600     dark:text-red-400',
+    bar:    'bg-red-500',
+    pulse:  true,
+  },
+  warning:  {
+    strip:  'border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-900/20',
+    text:   'text-amber-600   dark:text-amber-400',
+    bar:    'bg-amber-400',
+    pulse:  false,
+  },
+  soon:     {
+    strip:  'border-indigo-200 dark:border-indigo-800/40 bg-indigo-50 dark:bg-indigo-900/20',
+    text:   'text-indigo-600   dark:text-indigo-400',
+    bar:    'bg-indigo-500',
+    pulse:  false,
+  },
+  normal:   {
+    strip:  'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/60 dark:bg-emerald-900/10',
+    text:   'text-emerald-600   dark:text-emerald-400',
+    bar:    'bg-emerald-500',
+    pulse:  false,
+  },
+}
 
-  // Color logic based on time remaining
-  let colorClass
-  if (overdue) {
-    colorClass = 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
-  } else if (ms < 3600_000) {
-    // < 1 hour — red
-    colorClass = 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
-  } else if (ms < 86400_000) {
-    // < 24 hours — amber
-    colorClass = 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40'
-  } else if (ms < 3 * 86400_000) {
-    // < 3 days — indigo
-    colorClass = 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/40'
-  } else {
-    // plenty of time — muted
-    colorClass = 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40 border-gray-200 dark:border-gray-600/40'
-  }
+// ── CountdownTimer ─────────────────────────────────────────────────────────────
+function CountdownTimer({ deadlineMs, createdAtMs }) {
+  const now      = useNow()
+  const ms       = deadlineMs - now
+  const urgency  = getUrgency(ms)
+  const styles   = urgencyStyles[urgency]
+  const [tip, setTip] = useState(false)
+  const tipRef   = useRef(null)
+
+  // Close tooltip on outside click
+  useEffect(() => {
+    if (!tip) return
+    const handler = (e) => {
+      if (tipRef.current && !tipRef.current.contains(e.target)) setTip(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [tip])
+
+  // Progress bar — % of time elapsed from createdAt → deadline
+  const startMs   = createdAtMs ?? (deadlineMs - 7 * 86_400_000)
+  const totalSpan = deadlineMs - startMs
+  const elapsed   = now - startMs
+  const pct       = totalSpan > 0
+    ? Math.min(100, Math.max(0, (elapsed / totalSpan) * 100))
+    : 100
+
+  const label     = ms < 0
+    ? `Overdue by ${formatCountdown(-ms)}`
+    : formatCountdown(ms)
+
+  const tooltipText = ms < 0
+    ? `Was due ${formatCountdown(-ms)} ago`
+    : `Due in ${formatCountdown(ms)}`
 
   return (
-    <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-1.5 ${colorClass}`}>
-      {/* Clock icon */}
-      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <circle cx="12" cy="12" r="9" strokeLinecap="round" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
-      </svg>
-
-      <span className="text-xs font-mono font-semibold tracking-wide">
-        {overdue ? `Overdue by ${display}` : display}
-      </span>
-
-      {/* Pulsing dot for last hour */}
-      {!overdue && ms < 3600_000 && (
-        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+    <div
+      ref={tipRef}
+      className={[
+        'relative mt-3 rounded-xl border px-3 py-2 transition-colors duration-500 cursor-default select-none',
+        styles.strip,
+      ].join(' ')}
+      onMouseEnter={() => setTip(true)}
+      onMouseLeave={() => setTip(false)}
+    >
+      {/* Tooltip */}
+      {tip && (
+        <div className="absolute -top-9 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+            {tooltipText}
+            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-gray-900 dark:border-t-gray-700" />
+          </div>
+        </div>
       )}
+
+      {/* Timer row */}
+      <div className="flex items-center gap-2">
+        {/* Clock icon */}
+        <svg
+          className={`w-3.5 h-3.5 shrink-0 transition-colors duration-500 ${styles.text}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+        </svg>
+
+        {/* Countdown */}
+        <span className={`text-xs font-mono font-semibold tracking-wide transition-colors duration-500 ${styles.text}`}>
+          {label}
+        </span>
+
+        {/* Pulsing dot for critical */}
+        {styles.pulse && (
+          <span className="ml-auto w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+        )}
+      </div>
+
+      {/* Progress bar */}
+      <div className="mt-2 h-1 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-1000 ease-linear ${styles.bar}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   )
 }
 
+// ── TaskCard ──────────────────────────────────────────────────────────────────
 export default function TaskCard({ task, onEdit, onDelete, onToggle }) {
-  const deadline = new Date(task.deadline)
-  const overdue  = !task.completed && isPast(deadline) && !isToday(deadline)
-  const dueToday = !task.completed && isToday(deadline)
+  const deadlineMs  = safeMs(task.deadline)
+  const createdAtMs = safeMs(task.createdAt)
+
+  // Use a stable date for display (not live-ticking)
+  const deadline = deadlineMs ? new Date(deadlineMs) : null
+  const overdue  = !task.completed && deadline && isPast(deadline) && !isToday(deadline)
+  const dueToday = !task.completed && deadline && isToday(deadline)
   const cfg      = priorityConfig[task.priority] || priorityConfig.medium
 
-  const timeLabel = format(deadline, 'MMM d · h:mm a')
+  const timeLabel = deadline ? format(deadline, 'MMM d · h:mm a') : 'No deadline'
 
   return (
     <motion.div
@@ -206,8 +291,10 @@ export default function TaskCard({ task, onEdit, onDelete, onToggle }) {
             </p>
           )}
 
-          {/* Countdown timer */}
-          <CountdownTimer deadline={deadline.getTime()} completed={task.completed} />
+          {/* Countdown timer — only for incomplete tasks with a valid deadline */}
+          {!task.completed && deadlineMs && (
+            <CountdownTimer deadlineMs={deadlineMs} createdAtMs={createdAtMs} />
+          )}
         </div>
       </div>
 
@@ -222,7 +309,7 @@ export default function TaskCard({ task, onEdit, onDelete, onToggle }) {
         </div>
       )}
 
-      {/* Action buttons — revealed on hover (desktop) / always visible (touch) */}
+      {/* Action buttons (normal tasks) */}
       {(!overdue && !dueToday) && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
           <motion.button
@@ -248,7 +335,7 @@ export default function TaskCard({ task, onEdit, onDelete, onToggle }) {
         </div>
       )}
 
-      {/* Overdue/Today actions */}
+      {/* Action buttons (overdue / today) */}
       {(overdue || dueToday) && !task.completed && (
         <div className="absolute right-[84px] top-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
           <motion.button
