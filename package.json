@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"API_PORT=3001 node server.js\" \"vite --host 0.0.0.0 --port 5000\"",
+    "dev": "concurrently \"cross-env API_PORT=3001 node server.js\" \"vite --host 0.0.0.0 --port 5000\"",
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server.js",
@@ -31,6 +31,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",

@@ -1,4 +1,8 @@
-import 'dotenv/config'
+import dotenv from 'dotenv'
+
+// Load .env.local for local development
+dotenv.config({ path: '.env.local' })
+
 import express from 'express'
 import cors from 'cors'
 import cron from 'node-cron'
@@ -161,6 +165,7 @@ app.delete('/api/tasks/:id', (req, res) => {
 
 // ── /api/send-email ───────────────────────────────────────────────────────────
 app.post('/api/send-email', async (req, res) => {
+  console.log('[api/send-email] Request received:', req.method, req.url)
   try {
     let body = req.body
     if (typeof body === 'string') { try { body = JSON.parse(body) } catch { body = {} } }

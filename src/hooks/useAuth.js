@@ -12,7 +12,7 @@ import { auth, isFirebaseConfigured } from '../firebase'
 
 const FUNCTIONS_BASE =
   import.meta.env.VITE_FUNCTIONS_URL ||
-  'https://us-central1-study-planner-af5b2.cloudfunctions.net'
+  (import.meta.env.DEV ? 'http://localhost:5001/study-planner-af5b2/us-central1' : 'https://us-central1-study-planner-af5b2.cloudfunctions.net')
 
 async function saveProfile(user, username) {
   try {
