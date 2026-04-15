@@ -1,5 +1,6 @@
-import { format, isPast, isToday, formatDistanceToNow } from 'date-fns'
-import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { format, isPast, isToday } from 'date-fns'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const priorityConfig = {
   high: {
@@ -25,15 +26,86 @@ const priorityConfig = {
   },
 }
 
+function useCountdown(deadline) {
+  const [remaining, setRemaining] = useState(() => deadline - Date.now())
+
+  useEffect(() => {
+    const tick = () => setRemaining(deadline - Date.now())
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [deadline])
+
+  return remaining
+}
+
+function CountdownTimer({ deadline, completed }) {
+  const ms = useCountdown(deadline)
+
+  if (completed) return null
+
+  const overdue = ms < 0
+  const abs = Math.abs(ms)
+  const totalSecs = Math.floor(abs / 1000)
+  const days  = Math.floor(totalSecs / 86400)
+  const hours = Math.floor((totalSecs % 86400) / 3600)
+  const mins  = Math.floor((totalSecs % 3600) / 60)
+  const secs  = totalSecs % 60
+
+  const pad = n => String(n).padStart(2, '0')
+
+  let display
+  if (days > 0) {
+    display = `${days}d ${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
+  } else {
+    display = `${pad(hours)}h ${pad(mins)}m ${pad(secs)}s`
+  }
+
+  // Color logic based on time remaining
+  let colorClass
+  if (overdue) {
+    colorClass = 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
+  } else if (ms < 3600_000) {
+    // < 1 hour — red
+    colorClass = 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
+  } else if (ms < 86400_000) {
+    // < 24 hours — amber
+    colorClass = 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40'
+  } else if (ms < 3 * 86400_000) {
+    // < 3 days — indigo
+    colorClass = 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/40'
+  } else {
+    // plenty of time — muted
+    colorClass = 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40 border-gray-200 dark:border-gray-600/40'
+  }
+
+  return (
+    <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-1.5 ${colorClass}`}>
+      {/* Clock icon */}
+      <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <circle cx="12" cy="12" r="9" strokeLinecap="round" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+      </svg>
+
+      <span className="text-xs font-mono font-semibold tracking-wide">
+        {overdue ? `Overdue by ${display}` : display}
+      </span>
+
+      {/* Pulsing dot for last hour */}
+      {!overdue && ms < 3600_000 && (
+        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+      )}
+    </div>
+  )
+}
+
 export default function TaskCard({ task, onEdit, onDelete, onToggle }) {
   const deadline = new Date(task.deadline)
   const overdue  = !task.completed && isPast(deadline) && !isToday(deadline)
   const dueToday = !task.completed && isToday(deadline)
   const cfg      = priorityConfig[task.priority] || priorityConfig.medium
 
-  const timeLabel = overdue
-    ? `Overdue · ${formatDistanceToNow(deadline, { addSuffix: true })}`
-    : format(deadline, 'MMM d · h:mm a')
+  const timeLabel = format(deadline, 'MMM d · h:mm a')
 
   return (
     <motion.div
@@ -133,6 +205,9 @@ export default function TaskCard({ task, onEdit, onDelete, onToggle }) {
               {task.notes}
             </p>
           )}
+
+          {/* Countdown timer */}
+          <CountdownTimer deadline={deadline.getTime()} completed={task.completed} />
         </div>
       </div>
 
